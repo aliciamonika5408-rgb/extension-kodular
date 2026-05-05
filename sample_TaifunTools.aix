@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <title>404 Not Found | Pura Vida Apps</title>
+    <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="keywords" lang="en" content="Android, App Inventor, Kodular, Niotron">
+  <meta name="description" lang="en" content="App Inventor snippets, tutorials, links and App Inventor extensions directory.">
+  <meta name="robots" content="all">
+  <meta name="robots" content="index,follow">
+  <meta name="author" content="puravidaapps.com">
+
+  <!-- https://developers.facebook.com/docs/sharing/webmasters#images -->
+  <meta property="og:type"      content="website" />
+  <meta property="og:site_name" content="Pura Vida Apps" />
+  <meta property="og:image"     content="http://uvitadream.com/hotlinking/logo512.png" />
+
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="css/foundation.min.css">
+  <link rel="stylesheet" href="css/style21.css">
+  <link rel="shortcut icon" href="favicon.ico">
+
+  <script src="js/modernizr.foundation.js"></script>
+  <!-- REMEMBER special case: importCSV.php --></head>
+
+<body>
+  <div class="row">
+    <div class="twelve columns">
+      <h1 id="title"><a href="./index.php" target="_top"><img src="./images/logo.png" width="125" height="125" alt="" title=""></a>
+        404 Not Found
+      </h1>
+    </div> <!-- end: 12 columns -->
+    <div class="fixed contain-to-grid">
+<!-- <div class="sticky contain-to-grid"> -->
+  <nav class="top-bar">
+    <ul>
+        <li class="name"><h1><a href="index.php">Pura Vida Apps</a></h1></li>
+        <li class="toggle-topbar"><a href="#"></a></li>
+        <li><a href="snippets.php">Snippets</a></li>
+        <li><a href="tutorials.php">Tutorials</a></li>
+        <li><a href="extensions.php">Extensions</a></li>
+        <li><a href="links.php">Links</a></li>
+        <li><a href="search.php">Search</a></li>
+        <li><a href="privacy-policy.php">Privacy Policy</a></li>
+        <li><a href="contact.php">Contact</a></li>
+    </ul>
+  </nav>
+</div>  </div> <!-- end: row -->
+
+  <hr class="hrtop" />
+
+  <div class="row" style="height:120px;text-align:center">
+  <div class="twelve columns">
+
+    <script type="text/javascript"><!--
+      google_ad_client = "ca-pub-4570652611310282";
+      /* puravida1 */
+      google_ad_slot = "0737024558";
+      google_ad_width = 728;
+      google_ad_height = 90;
+      //-->
+    </script>
+    <script src="https://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+
+  </div>
+</div>
+
+  <div class="row">
+    <div class="twelve columns">
+      <h2>404 Not Found</h2>
+
+      <p>We are sorry, but the URL you requested could not be found.<br>
+        The page you are looking for may have been renamed, moved, or deleted.
+        <br><br><br><br><br><br><br>
+        go to <a style="font-weight: bold;" href="./index.php">HOME</a> of puravidaapps.com.</p>
+
+    </div> <!-- end: 12 columns -->
+  </div> <!-- end: row -->
+
+    <div>
+    <hr />
+    <a href="./index.php">Home</a> |
+    <a href="./snippets.php">Snippets</a> |
+    <a href="./tutorials.php">Tutorials</a> |
+    <a href="./extensions.php">Extensions</a> |
+    <a href="./links.php">Links</a> |
+    <a href="./search.php">Search</a> |
+    <a href="./privacy-policy.php">Privacy Policy</a> |
+    <a href="./contact.php">Contact</a>
+    <br><br>
+
+    <!-- http://www.revolvermaps.com/?target=setup2d -->
+<!--
+    <div style="text-align: center;">
+      <div style="display:inline-block;width:500px;">
+        <script type="text/javascript" src="//ra.revolvermaps.com/0/0/7.js?i=1w0t4slnlhn&amp;m=0&amp;c=ff0000&amp;cr1=ffffff&amp;sx=0" async="async"></script>
+      </div>
+    </div>
+-->
+    <p class="footer">Site Content &copy; 2010 - 2025 <a href="https://puravidaapps.com">Pura Vida Apps</a> using the
+      <a class="ext" href="https://foundation.zurb.com/" target="_blank">
+      <img src="./images/foundation.png" width="20" height="25" alt="Foundation" title="">Foundation Framework</a>.<br>
+    </p>
+
+    <p class="footer">Portions of this page are modifications based on work created and
+      <a class="ext" href="https://www.google.com/intl/en/policies/" target="_blank">shared by Google</a>
+      and used according to terms described in the
+      <a class="ext" href="https://creativecommons.org/licenses/by/3.0/" target="_blank">Creative Commons 3.0 Attribution License.</a>
+      Android is a trademark of Google Inc.
+      <br>
+    </p>
+  </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="js/foundation.min.js"></script>
+  <!-- line 63 of jquery.foundation.magellan.js updated to make the magellan nav bar appear below the Top Bar.-->
+  <script src="js/jquery.foundation.magellan.min.js"></script>
+
+  <!-- Initialize JS Plugins -->
+  <script src="js/app.js"></script>
+
+  <script>
+    $(window).load(function(){
+      $("#featured").orbit();
+    });
+  </script></body>
+</html>
+
+</html>
