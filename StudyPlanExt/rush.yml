@@ -1,0 +1,13 @@
+name: StudyPlan
+description: StudyPlan - Catatan Tugas Sekolah. Extension untuk mengelola tugas sekolah dengan fitur tambah, edit, hapus, deadline, prioritas, dan status tugas.
+version:
+  number: 1
+  name: "1.0"
+authors:
+  - StudyPlan Team
+min_sdk: 7
+assets:
+  icon: icon.png
+build:
+  release:
+    optimize: true
