@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#6C5CE7">
+  <meta name="description" content="StudyPlan - Aplikasi catatan tugas sekolah untuk pelajar">
+  <title>StudyPlan - Catatan Tugas Sekolah</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash-screen" class="splash-screen">
+    <div class="splash-content">
+      <img src="assets/logo.png" alt="StudyPlan Logo" class="splash-logo">
+      <h1 class="splash-title">StudyPlan</h1>
+      <p class="splash-subtitle">Catatan Tugas Sekolah</p>
+    </div>
+    <p class="splash-footer">Rencanakan hari ini, selesaikan dengan baik. 📚</p>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div id="app" class="app hidden">
+
+    <!-- Header -->
+    <header id="main-header" class="header">
+      <div class="header-left">
+        <button id="btn-back" class="header-btn hidden" onclick="goBack()">
+          <span class="material-icons-round">arrow_back</span>
+        </button>
+        <button id="btn-menu" class="header-btn" style="pointer-events:none;opacity:.5;">
+          <span class="material-icons-round">menu</span>
+        </button>
+      </div>
+      <h1 id="header-title" class="header-title">StudyPlan</h1>
+      <div class="header-right">
+        <button id="btn-header-action" class="header-btn hidden" onclick="handleHeaderAction()">
+          <span id="header-action-icon" class="material-icons-round">check</span>
+        </button>
+        <button id="btn-notification" class="header-btn">
+          <span class="material-icons-round">notifications</span>
+          <span id="notification-badge" class="badge hidden"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Screens -->
+    <main id="screens-container" class="screens-container">
+
+      <!-- HOME -->
+      <div id="screen-home" class="screen active">
+        <div class="greeting-card">
+          <div class="greeting-text">
+            <h2>Halo, Pelajar! 👋</h2>
+            <p>Semangat mengerjakan tugas hari ini!</p>
+          </div>
+          <div class="greeting-emoji">✍️</div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <h3>Ringkasan</h3>
+            <a href="#" class="link" onclick="navigateTo('completed');return false;">Lihat Semua</a>
+          </div>
+          <div class="summary-cards">
+            <div class="summary-card total">
+              <div class="summary-icon">📋</div>
+              <div class="summary-count" id="total-count">0</div>
+              <div class="summary-label">Total Tugas</div>
+            </div>
+            <div class="summary-card pending">
+              <div class="summary-icon">📕</div>
+              <div class="summary-count" id="pending-count">0</div>
+              <div class="summary-label">Belum Selesai</div>
+            </div>
+            <div class="summary-card done">
+              <div class="summary-icon">✅</div>
+              <div class="summary-count" id="done-count">0</div>
+              <div class="summary-label">Selesai</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header"><h3>Daftar Tugas</h3></div>
+          <div class="search-bar">
+            <span class="material-icons-round">search</span>
+            <input type="text" class="search-input" id="search-input" placeholder="Cari tugas..." oninput="renderHome()">
+          </div>
+          <div class="filter-chips" id="filter-chips">
+            <div class="filter-chip active" data-filter="all" onclick="setFilter('all',this)">Semua</div>
+            <div class="filter-chip" data-filter="high" onclick="setFilter('high',this)">🔴 Urgent</div>
+            <div class="filter-chip" data-filter="medium" onclick="setFilter('medium',this)">🟡 Sedang</div>
+            <div class="filter-chip" data-filter="low" onclick="setFilter('low',this)">🟢 Rendah</div>
+          </div>
+          <div id="task-list" class="task-list"></div>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div id="screen-calendar" class="screen">
+        <div class="calendar-container">
+          <div class="calendar-nav">
+            <button onclick="changeMonth(-1)"><span class="material-icons-round">chevron_left</span></button>
+            <h3 id="calendar-title">Mei 2026</h3>
+            <button onclick="changeMonth(1)"><span class="material-icons-round">chevron_right</span></button>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><h3 id="cal-tasks-title">Tugas Hari Ini</h3></div>
+          <div id="cal-task-list" class="task-list"></div>
+        </div>
+      </div>
+
+      <!-- COMPLETED -->
+      <div id="screen-completed" class="screen">
+        <div class="section">
+          <div class="section-header"><h3>Tugas Selesai</h3></div>
+          <div id="completed-list" class="task-list"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="screen-profile" class="screen">
+        <div class="profile-header">
+          <div class="profile-avatar">P</div>
+          <div class="profile-name">Pelajar</div>
+          <div class="profile-email">Semangat belajar! 💪</div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Tugas</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-done">0</div><div class="stat-label">Selesai</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-pending">0</div><div class="stat-label">Belum Selesai</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-urgent">0</div><div class="stat-label">Urgent</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-item" onclick="showToast('Fitur segera hadir!')">
+            <div class="settings-icon"><span class="material-icons-round">palette</span></div>
+            <span class="settings-label">Tema Aplikasi</span>
+            <span class="material-icons-round settings-arrow">chevron_right</span>
+          </div>
+          <div class="settings-item" onclick="showToast('Fitur segera hadir!')">
+            <div class="settings-icon"><span class="material-icons-round">notifications_active</span></div>
+            <span class="settings-label">Pengaturan Notifikasi</span>
+            <span class="material-icons-round settings-arrow">chevron_right</span>
+          </div>
+          <div class="settings-item" onclick="showToast('Fitur segera hadir!')">
+            <div class="settings-icon"><span class="material-icons-round">language</span></div>
+            <span class="settings-label">Bahasa</span>
+            <span class="material-icons-round settings-arrow">chevron_right</span>
+          </div>
+          <div class="settings-item" onclick="showToast('StudyPlan v1.0 • Catatan Tugas Sekolah')">
+            <div class="settings-icon"><span class="material-icons-round">info</span></div>
+            <span class="settings-label">Tentang Aplikasi</span>
+            <span class="material-icons-round settings-arrow">chevron_right</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD TASK -->
+      <div id="screen-add-task" class="screen">
+        <form id="task-form" onsubmit="saveTask(event)">
+          <div class="form-group">
+            <label class="form-label">Judul Tugas</label>
+            <input type="text" class="form-input" id="f-title" placeholder="Contoh: Kerjakan soal matematika" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mata Pelajaran</label>
+            <select class="form-select" id="f-subject" required>
+              <option value="">Pilih mata pelajaran</option>
+              <option value="Matematika">📐 Matematika</option>
+              <option value="Bahasa Indonesia">📖 Bahasa Indonesia</option>
+              <option value="IPA">🔬 IPA</option>
+              <option value="Bahasa Inggris">🌐 Bahasa Inggris</option>
+              <option value="IPS">🌍 IPS</option>
+              <option value="Fisika">⚡ Fisika</option>
+              <option value="Kimia">⚗️ Kimia</option>
+              <option value="Biologi">🧬 Biologi</option>
+              <option value="Lainnya">📝 Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Deskripsi (Opsional)</label>
+            <textarea class="form-textarea" id="f-desc" placeholder="Tulis deskripsi tugas..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Deadline</label>
+            <input type="datetime-local" class="form-input" id="f-deadline" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prioritas</label>
+            <div class="priority-options">
+              <div class="priority-option" data-priority="low" onclick="selectPriority('low',this)">Rendah</div>
+              <div class="priority-option" data-priority="medium" onclick="selectPriority('medium',this)">Sedang</div>
+              <div class="priority-option" data-priority="high" onclick="selectPriority('high',this)">Tinggi</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pengingat</label>
+            <select class="form-select" id="f-reminder">
+              <option value="1_day">1 hari sebelum deadline</option>
+              <option value="3_hours">3 jam sebelum deadline</option>
+              <option value="1_hour">1 jam sebelum deadline</option>
+              <option value="none">Tidak ada</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-save">Simpan Tugas</button>
+        </form>
+      </div>
+
+      <!-- TASK DETAIL -->
+      <div id="screen-task-detail" class="screen">
+        <div id="detail-content"></div>
+      </div>
+
+    </main>
+
+    <!-- FAB -->
+    <button id="fab" class="fab" onclick="showAddTask()">
+      <span class="material-icons-round">add</span>
+    </button>
+
+    <!-- Bottom Nav -->
+    <nav id="bottom-nav" class="bottom-nav">
+      <button class="nav-item active" data-screen="home" onclick="navigateTo('home')">
+        <span class="material-icons-round">home</span>
+        <span class="nav-label">Beranda</span>
+      </button>
+      <button class="nav-item" data-screen="calendar" onclick="navigateTo('calendar')">
+        <span class="material-icons-round">calendar_today</span>
+        <span class="nav-label">Kalender</span>
+      </button>
+      <div class="nav-spacer"></div>
+      <button class="nav-item" data-screen="completed" onclick="navigateTo('completed')">
+        <span class="material-icons-round">check_circle</span>
+        <span class="nav-label">Selesai</span>
+      </button>
+      <button class="nav-item" data-screen="profile" onclick="navigateTo('profile')">
+        <span class="material-icons-round">person</span>
+        <span class="nav-label">Profil</span>
+      </button>
+    </nav>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Confirm Dialog -->
+    <div id="dialog-overlay" class="dialog-overlay hidden">
+      <div class="dialog-box">
+        <div class="dialog-title" id="dialog-title">Konfirmasi</div>
+        <div class="dialog-message" id="dialog-message">Apakah kamu yakin?</div>
+        <div class="dialog-actions">
+          <button class="dialog-btn cancel" onclick="closeDialog()">Batal</button>
+          <button class="dialog-btn confirm" id="dialog-confirm" onclick="confirmDialog()">Hapus</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
