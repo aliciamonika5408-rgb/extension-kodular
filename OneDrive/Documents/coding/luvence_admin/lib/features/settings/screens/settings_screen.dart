@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/shimmer_loading.dart';
@@ -8,33 +7,6 @@ import '../services/settings_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
 
-/// Auto-formats numbers with dot thousand separators (e.g. 45000 → 45.000)
-class _ThousandSepFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.isEmpty) return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
-    final formatted = _addDots(digits);
-    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
-  }
-
-  static String _addDots(String digits) {
-    final buf = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buf.write('.');
-      buf.write(digits[i]);
-    }
-    return buf.toString();
-  }
-
-  /// Format a raw value (string or int) into dotted format
-  static String format(dynamic value) {
-    final s = value?.toString() ?? '';
-    final digits = s.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.isEmpty) return '';
-    return _addDots(digits);
-  }
-}
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -209,23 +181,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             _buildField('Instagram', 'social_instagram', 'https://instagram.com/luvence.id', icon: '📸', keyboardType: TextInputType.url),
                             _buildField('TikTok', 'social_tiktok', 'https://tiktok.com/@luvence', icon: '🎵', keyboardType: TextInputType.url),
-                          ],
-                        ),
-
-                        // Section 4: Shipping
-                        _buildSection(
-                          icon: '🚚',
-                          title: 'Logistik & Ekspedisi',
-                          desc: 'Atur tarif ongkir berdasarkan zona',
-                          children: [
-                            _buildZoneInfo(),
-                            const SizedBox(height: 12),
-                            _buildCurrencyField('Dalam Kota (Surabaya)', 'ship_kota', '10000', icon: '🏙️', hint: 'Area Surabaya & sekitarnya'),
-                            _buildCurrencyField('Dalam Provinsi (Jawa Timur)', 'ship_prov', '15000', icon: '🗺️', hint: 'Malang, Kediri, Jember, dll'),
-                            _buildCurrencyField('Pulau Jawa (Luar Jatim)', 'ship_jawa', '20000', icon: '🛤️', hint: 'Jakarta, Bandung, Semarang, Jogja'),
-                            _buildCurrencyField('Sumatera & Bali', 'ship_sumatera_bali', '30000', icon: '🏝️', hint: 'Medan, Palembang, Bali, Lombok'),
-                            _buildCurrencyField('Kalimantan & Sulawesi', 'ship_kalimantan_sulawesi', '40000', icon: '🌊', hint: 'Banjarmasin, Makassar, Manado'),
-                            _buildCurrencyField('Indonesia Timur', 'ship_luar', '55000', icon: '✈️', hint: 'Papua, Maluku, NTT, dll'),
                           ],
                         ),
 
@@ -414,90 +369,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: InputDecoration(hintText: hint),
         ),
       ]),
-    );
-  }
-
-  Widget _buildCurrencyField(String label, String key, String fallback, {String? icon, String? hint}) {
-    final rawVal = _get(key, fallback);
-    final displayVal = _ThousandSepFormatter.format(rawVal);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          if (icon != null) ...[Text(icon, style: const TextStyle(fontSize: 11)), const SizedBox(width: 4)],
-          Expanded(
-            child: Text(label.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: LuvColors.accent.withValues(alpha: 0.5))),
-          ),
-        ]),
-        if (hint != null) ...[
-          const SizedBox(height: 2),
-          Text(hint, style: TextStyle(fontSize: 9, color: LuvColors.textMuted.withValues(alpha: 0.6))),
-        ],
-        const SizedBox(height: 6),
-        TextField(
-          controller: TextEditingController(text: displayVal),
-          style: const TextStyle(color: Colors.white, fontSize: 13),
-          keyboardType: TextInputType.number,
-          inputFormatters: [_ThousandSepFormatter()],
-          onChanged: (v) => _values[key] = v.replaceAll('.', ''),
-          decoration: InputDecoration(
-            hintText: _ThousandSepFormatter.format(fallback),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 14, right: 4),
-              child: Text('Rp', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: LuvColors.textMuted)),
-            ),
-            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  /// Info box explaining the shipping zones
-  Widget _buildZoneInfo() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: LuvColors.accentBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LuvColors.accent.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.info_outline_rounded, size: 14, color: LuvColors.accent),
-            const SizedBox(width: 6),
-            Text('PANDUAN ZONA ONGKIR', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: LuvColors.accent, letterSpacing: 0.5)),
-          ]),
-          const SizedBox(height: 8),
-          _zoneGuideRow('🏙️', 'Dalam Kota', 'Surabaya & sekitarnya (Sidoarjo, Gresik)'),
-          _zoneGuideRow('🗺️', 'Dalam Provinsi', 'Kota lain di Jawa Timur'),
-          _zoneGuideRow('🛤️', 'Pulau Jawa', 'Jabodetabek, Bandung, Semarang, Jogja'),
-          _zoneGuideRow('🏝️', 'Sumatera & Bali', 'Pulau terdekat dari Jawa'),
-          _zoneGuideRow('🌊', 'Kalim. & Sulawesi', 'Jarak menengah lewat laut'),
-          _zoneGuideRow('✈️', 'Indonesia Timur', 'Terjauh: Papua, Maluku, NTT'),
-        ],
-      ),
-    );
-  }
-
-  Widget _zoneGuideRow(String emoji, String zone, String desc) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 10)),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 100,
-            child: Text(zone, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: LuvColors.textPrimary)),
-          ),
-          Expanded(
-            child: Text(desc, style: TextStyle(fontSize: 8, color: LuvColors.textMuted)),
-          ),
-        ],
-      ),
     );
   }
 
