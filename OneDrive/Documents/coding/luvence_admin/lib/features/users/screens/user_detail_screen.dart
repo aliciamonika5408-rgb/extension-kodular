@@ -12,7 +12,8 @@ import '../services/user_service.dart';
 class UserDetailScreen extends StatefulWidget {
   final Map<String, dynamic> user;
   final String myRole;
-  const UserDetailScreen({super.key, required this.user, this.myRole = 'admin'});
+  final String? myId;
+  const UserDetailScreen({super.key, required this.user, this.myRole = 'admin', this.myId});
 
   @override
   State<UserDetailScreen> createState() => _UserDetailScreenState();
@@ -42,12 +43,19 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   bool get _canChangeRole {
-    return widget.myRole == 'owner' || widget.myRole == 'developer';
+    if (widget.myRole != 'owner' && widget.myRole != 'developer') return false;
+    // Cannot change your own role
+    final targetId = _user['id']?.toString();
+    final myId = widget.myId;
+    if (myId != null && myId == targetId) return false;
+    return true;
   }
 
   List<String> get _availableRoles {
-    if (widget.myRole == 'owner') return ['user', 'admin', 'developer', 'owner'];
-    if (widget.myRole == 'developer') return ['user', 'admin', 'developer'];
+    // Both owner and developer can assign all roles including owner
+    if (widget.myRole == 'owner' || widget.myRole == 'developer') {
+      return ['user', 'admin', 'developer', 'owner'];
+    }
     return [];
   }
 
@@ -71,22 +79,74 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Future<void> _changeRole(String newRole) async {
     final userId = _user['id']?.toString();
     if (userId == null) return;
+    final targetName = (_user['full_name'] ?? _user['email'] ?? 'pengguna ini').toString();
+    final isOwnerPromotion = newRole == 'owner';
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: LuvColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Ubah Role?', style: TextStyle(color: LuvColors.textPrimary, fontSize: 16)),
-        content: Text(
-          'Ubah role ${_user['full_name'] ?? _user['email']} menjadi "${newRole.toUpperCase()}"?',
-          style: TextStyle(color: LuvColors.textSecondary, fontSize: 13),
+        title: Row(
+          children: [
+            Icon(
+              isOwnerPromotion ? Icons.warning_amber_rounded : Icons.manage_accounts_rounded,
+              color: isOwnerPromotion ? LuvColors.error : LuvColors.accent,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isOwnerPromotion ? 'Promosi ke Owner?' : 'Ubah Role?',
+              style: TextStyle(
+                color: isOwnerPromotion ? LuvColors.error : LuvColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ubah role $targetName menjadi "${newRole.toUpperCase()}"?',
+              style: TextStyle(color: LuvColors.textSecondary, fontSize: 13),
+            ),
+            if (isOwnerPromotion) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: LuvColors.errorBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: LuvColors.error.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  '⚠️ Role OWNER memiliki akses penuh ke seluruh sistem, termasuk menghapus data dan mengubah role pengguna lain.',
+                  style: TextStyle(fontSize: 11, color: LuvColors.error, height: 1.5),
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
           TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Ubah', style: TextStyle(color: LuvColors.accent, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isOwnerPromotion ? LuvColors.error : LuvColors.accent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              isOwnerPromotion ? 'Ya, Promosikan' : 'Ubah Role',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -101,8 +161,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       setState(() { _user['role'] = newRole; _saving = false; });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Role berhasil diubah ke ${newRole.toUpperCase()}'),
-          backgroundColor: LuvColors.success,
+          content: Row(children: [
+            Icon(_roleIcon(newRole), color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Text('Role berhasil diubah ke ${newRole.toUpperCase()}'),
+          ]),
+          backgroundColor: _roleColor(newRole),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
@@ -443,39 +507,95 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   void _showRolePicker(String currentRole) {
+    final descriptions = {
+      'user': 'Pelanggan biasa, hanya bisa belanja',
+      'admin': 'Kelola produk, transaksi & pengguna',
+      'developer': 'Akses penuh + kelola sistem & keamanan',
+      'owner': 'Pemilik — akses tertinggi ke semua fitur',
+    };
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         decoration: const BoxDecoration(
           color: Color(0xFF0F1520),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Color(0x26D4A574))),
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2))),
+          // Handle bar
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 16),
           Text('Pilih Role', style: GoogleFonts.playfairDisplay(fontSize: 18, fontWeight: FontWeight.w700, color: LuvColors.textPrimary)),
-          const SizedBox(height: 16),
-          ..._availableRoles.map((r) => GestureDetector(
-            onTap: () { Navigator.pop(ctx); if (r != currentRole) _changeRole(r); },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: r == currentRole ? _roleColor(r).withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.02),
-                border: Border.all(color: r == currentRole ? _roleColor(r).withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.04)),
+          const SizedBox(height: 4),
+          Text('Sebagai ${widget.myRole.toUpperCase()}', style: TextStyle(fontSize: 10, color: LuvColors.accent.withValues(alpha: 0.5), letterSpacing: 1)),
+          const SizedBox(height: 20),
+          ..._availableRoles.map((r) {
+            final isActive = r == currentRole;
+            final isOwner = r == 'owner';
+            return GestureDetector(
+              onTap: () { Navigator.pop(ctx); if (!isActive) _changeRole(r); },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: isActive
+                      ? LinearGradient(colors: [_roleColor(r).withValues(alpha: 0.15), _roleColor(r).withValues(alpha: 0.04)])
+                      : null,
+                  color: isActive ? null : Colors.white.withValues(alpha: 0.02),
+                  border: Border.all(
+                    color: isActive
+                        ? _roleColor(r).withValues(alpha: 0.4)
+                        : isOwner
+                            ? LuvColors.error.withValues(alpha: 0.15)
+                            : Colors.white.withValues(alpha: 0.05),
+                    width: isActive ? 1.5 : 1,
+                  ),
+                  boxShadow: isActive ? LuvColors.glowShadow(_roleColor(r)) : null,
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _roleColor(r).withValues(alpha: 0.1),
+                      border: Border.all(color: _roleColor(r).withValues(alpha: 0.2)),
+                    ),
+                    child: Icon(_roleIcon(r), size: 16, color: _roleColor(r)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Text(r.toUpperCase(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _roleColor(r), letterSpacing: 0.8)),
+                      if (isOwner) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(color: LuvColors.errorBg, borderRadius: BorderRadius.circular(4)),
+                          child: const Text('TINGGI', style: TextStyle(fontSize: 8, color: LuvColors.error, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                        ),
+                      ],
+                    ]),
+                    const SizedBox(height: 2),
+                    Text(descriptions[r] ?? '', style: TextStyle(fontSize: 10, color: LuvColors.textMuted)),
+                  ])),
+                  if (isActive)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: _roleColor(r).withValues(alpha: 0.15)),
+                      child: Icon(Icons.check_rounded, size: 14, color: _roleColor(r)),
+                    ),
+                ]),
               ),
-              child: Row(children: [
-                Icon(_roleIcon(r), size: 18, color: _roleColor(r)),
-                const SizedBox(width: 12),
-                Expanded(child: Text(r.toUpperCase(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _roleColor(r), letterSpacing: 0.8))),
-                if (r == currentRole) Icon(Icons.check_circle_rounded, size: 18, color: _roleColor(r)),
-              ]),
-            ),
-          )),
-          const SizedBox(height: 8),
+            );
+          }),
+          const SizedBox(height: 4),
+          Text('Tindakan ini akan langsung tersimpan', style: TextStyle(fontSize: 10, color: LuvColors.textMuted)),
         ]),
       ),
     );

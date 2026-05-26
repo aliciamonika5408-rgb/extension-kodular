@@ -22,6 +22,7 @@ class _UsersScreenState extends State<UsersScreen> {
   String _search = '';
   String _roleFilter = 'all';
   String _myRole = 'admin';
+  String? _myId;
   final _searchController = TextEditingController();
 
   @override
@@ -40,8 +41,15 @@ class _UsersScreenState extends State<UsersScreen> {
     setState(() => _loading = true);
     try {
       final role = await AuthService.getRole();
+      final myId = await AuthService.getCurrentUserId();
       final data = await UserService.getUsers();
-      if (mounted) setState(() { _users = data; _myRole = role; _applyFilter(); _loading = false; });
+      if (mounted) setState(() {
+        _users = data;
+        _myRole = role;
+        _myId = myId;
+        _applyFilter();
+        _loading = false;
+      });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -252,7 +260,7 @@ class _UsersScreenState extends State<UsersScreen> {
       child: GestureDetector(
         onTap: () async {
           await Navigator.push(context, MaterialPageRoute(
-            builder: (_) => UserDetailScreen(user: u, myRole: _myRole),
+            builder: (_) => UserDetailScreen(user: u, myRole: _myRole, myId: _myId),
           ));
           _loadData(); // Refresh after returning
         },

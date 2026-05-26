@@ -94,4 +94,9 @@ class AuthService {
     final profile = await getProfile();
     return (profile?['role'] as String?) ?? 'user';
   }
+
+  /// Get current authenticated user's UUID (sync — from Supabase auth session)
+  static Future<String?> getCurrentUserId() async {
+    return currentUser?.id;
+  }
 }
