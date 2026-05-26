@@ -16,6 +16,11 @@ class LuvColors {
   static const Color accentLight = Color(0xFFE8C9A0);
   static const Color accentDark = Color(0xFFB07D4F);
 
+  // ── Purple ──
+  static const Color purple = Color(0xFF8B5CF6);
+  static const Color purpleLight = Color(0xFFA78BFA);
+  static const Color purpleBg = Color(0x1A8B5CF6);
+
   // ── Text ──
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0x99FFFFFF); // 60%
@@ -76,6 +81,13 @@ class LuvColors {
     ],
   );
 
+  /// Bottom navigation bar background gradient
+  static const LinearGradient navGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF080A12), Color(0xFF060810)],
+  );
+
   // ── Shadows ──
   static List<BoxShadow> cardShadow = [
     BoxShadow(
@@ -85,11 +97,35 @@ class LuvColors {
     ),
   ];
 
+  /// Gold-tinted card shadow for featured/accent cards
+  static List<BoxShadow> cardShadowGold = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.25),
+      blurRadius: 40,
+      offset: const Offset(0, 10),
+    ),
+    BoxShadow(
+      color: accent.withValues(alpha: 0.06),
+      blurRadius: 24,
+      spreadRadius: -4,
+    ),
+  ];
+
   static List<BoxShadow> glowShadow(Color color) => [
     BoxShadow(
       color: color.withValues(alpha: 0.15),
       blurRadius: 20,
       spreadRadius: -2,
+    ),
+  ];
+
+  /// Stronger glow for selected nav items or highlighted elements
+  static List<BoxShadow> navGlowShadow(Color color) => [
+    BoxShadow(
+      color: color.withValues(alpha: 0.25),
+      blurRadius: 16,
+      spreadRadius: -4,
+      offset: const Offset(0, 4),
     ),
   ];
 }

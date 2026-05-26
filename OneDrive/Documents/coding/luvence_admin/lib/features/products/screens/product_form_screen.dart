@@ -118,8 +118,23 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 85);
-    if (picked != null) setState(() => _imageFile = File(picked.path));
+    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200, imageQuality: 90);
+    if (picked != null) {
+      final file = File(picked.path);
+      final sizeBytes = await file.length();
+      if (sizeBytes > ProductService.maxFileSizeBytes) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File terlalu besar (${(sizeBytes / 1024 / 1024).toStringAsFixed(1)} MB). Maksimal 5 MB.'),
+              backgroundColor: LuvColors.error,
+            ),
+          );
+        }
+        return;
+      }
+      setState(() => _imageFile = file);
+    }
   }
 
   Future<void> _save() async {
@@ -129,8 +144,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     try {
       String imageUrl = _imageUrl;
       if (_imageFile != null) {
-        final ext = _imageFile!.path.split('.').last;
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}';
         imageUrl = await ProductService.uploadImage(_imageFile!, fileName);
       }
 

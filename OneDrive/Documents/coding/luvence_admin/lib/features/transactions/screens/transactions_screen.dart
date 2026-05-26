@@ -232,7 +232,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> with TickerProv
     final shipping = (t['shipping_status'] ?? 'dikemas').toString();
     final created = DateTime.tryParse((t['created_at'] ?? '').toString());
     final items = t['items'] as List? ?? [];
-    // Count only actual product items, exclude shipping/ongkir
     final productItems = items.where((item) {
       final name = (item['name'] ?? '').toString().toLowerCase();
       return !name.contains('ongkir') && !name.contains('shipping') && !name.contains('pengiriman');
@@ -246,12 +245,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> with TickerProv
       default: statusAccent = LuvColors.warning;
     }
 
+    // Avatar initial
+    final initial = customer.isNotEmpty ? customer[0].toUpperCase() : '?';
+
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 350 + (index * 40)),
+      duration: Duration(milliseconds: 300 + (index * 35)),
       curve: Curves.easeOutCubic,
-      builder: (_, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 24 * (1 - v)), child: child)),
-      child: GestureDetector(
+      builder: (_, v, child) => Opacity(
+        opacity: v,
+        child: Transform.translate(offset: Offset(0, 20 * (1 - v)), child: child),
+      ),
+      child: _TapScaleCard(
         onTap: () async {
           await Navigator.push(context, MaterialPageRoute(
             builder: (_) => TransactionDetailScreen(transaction: t),
@@ -262,82 +267,167 @@ class _TransactionsScreenState extends State<TransactionsScreen> with TickerProv
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            gradient: LuvColors.cardGradient,
-            border: Border.all(color: LuvColors.border),
+            gradient: LinearGradient(
+              begin: const Alignment(-1, -1),
+              end: const Alignment(1, 1),
+              colors: [
+                statusAccent.withValues(alpha: 0.04),
+                const Color(0xFF080A14),
+              ],
+            ),
+            border: Border.all(
+              color: statusAccent.withValues(alpha: 0.12),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Stack(
             children: [
-              // Subtle status accent line at left
+              // Status accent line at left with glow
               Positioned(
-                left: 0, top: 12, bottom: 12,
+                left: 0, top: 10, bottom: 10,
                 child: Container(
-                  width: 3,
+                  width: 4,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
-                    color: statusAccent.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(3),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        statusAccent.withValues(alpha: 0.8),
+                        statusAccent.withValues(alpha: 0.2),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusAccent.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        spreadRadius: -2,
+                      ),
+                    ],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Row 1: Order ID & Time
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Icon(Icons.receipt_long_rounded, size: 13, color: LuvColors.accent.withValues(alpha: 0.4)),
+                        const SizedBox(width: 6),
                         Expanded(
-                          child: Row(children: [
-                            Icon(Icons.receipt_long_rounded, size: 14, color: LuvColors.accent.withValues(alpha: 0.5)),
-                            const SizedBox(width: 6),
-                            Expanded(child: Text(orderId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: LuvColors.textPrimary, letterSpacing: -0.3), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                          ]),
+                          child: Text(
+                            orderId,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: LuvColors.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.03),
+                            color: Colors.white.withValues(alpha: 0.04),
                             borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(created != null ? Formatters.timeAgo(created) : '-', style: TextStyle(fontSize: 9, color: LuvColors.textMuted, fontWeight: FontWeight.w500)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Row 2: Customer & Items
-                    Row(
-                      children: [
-                        Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: LuvColors.glassMedium,
                             border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
                           ),
-                          child: Center(child: Text(customer.isNotEmpty ? customer[0].toUpperCase() : '?', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: LuvColors.accent.withValues(alpha: 0.7)))),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(customer, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: LuvColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text('${productItems.length} produk', style: TextStyle(fontSize: 10, color: LuvColors.textMuted)),
-                          ]),
+                          child: Text(
+                            created != null ? Formatters.timeAgo(created) : '-',
+                            style: TextStyle(fontSize: 9, color: LuvColors.textMuted, fontWeight: FontWeight.w500),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
 
+                    // Row 2: Customer Avatar & Info
+                    Row(
+                      children: [
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                statusAccent.withValues(alpha: 0.25),
+                                statusAccent.withValues(alpha: 0.06),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: statusAccent.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: statusAccent,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                customer,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: LuvColors.textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${productItems.length} produk',
+                                style: TextStyle(fontSize: 10, color: LuvColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded, size: 18, color: Colors.white.withValues(alpha: 0.12)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
                     // Divider
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.03)),
+                    Container(height: 0.5, color: Colors.white.withValues(alpha: 0.05)),
                     const SizedBox(height: 12),
 
                     // Row 3: Amount & Status Badges
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(Formatters.currency(amount), style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: LuvColors.accent, letterSpacing: -0.5)),
+                        // Gold gradient amount text
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [LuvColors.accentLight, LuvColors.accent],
+                          ).createShader(bounds),
+                          child: Text(
+                            Formatters.currency(amount),
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
                         Row(children: [
                           StatusBadge.payment(status),
                           const SizedBox(width: 6),
@@ -348,17 +438,56 @@ class _TransactionsScreenState extends State<TransactionsScreen> with TickerProv
                   ],
                 ),
               ),
-
-              // Tap hint arrow
-              Positioned(
-                right: 12, top: 0, bottom: 0,
-                child: Center(
-                  child: Icon(Icons.chevron_right_rounded, size: 16, color: Colors.white.withValues(alpha: 0.08)),
-                ),
-              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Lightweight tap-scale wrapper
+class _TapScaleCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _TapScaleCard({required this.child, required this.onTap});
+
+  @override
+  State<_TapScaleCard> createState() => _TapScaleCardState();
+}
+
+class _TapScaleCardState extends State<_TapScaleCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 180),
+    );
+    _scale = Tween(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) { _ctrl.reverse(); widget.onTap(); },
+      onTapCancel: () => _ctrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
+        child: widget.child,
       ),
     );
   }

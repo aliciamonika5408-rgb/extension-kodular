@@ -1,9 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/supabase_config.dart';
 
 class ProductService {
   static SupabaseClient get _client => SupabaseConfig.client;
+
+  /// Max file size: 5 MB
+  static const int maxFileSizeBytes = 5 * 1024 * 1024;
 
   /// Get all products
   static Future<List<Map<String, dynamic>>> getProducts({bool? isActive}) async {
@@ -44,14 +49,43 @@ class ProductService {
     }).eq('id', id);
   }
 
-  /// Upload image to Supabase Storage
+  /// Compress image to WebP format, max 1200px, quality 80
+  static Future<Uint8List> _compressToWebP(File file) async {
+    final result = await FlutterImageCompress.compressWithFile(
+      file.absolute.path,
+      minWidth: 1200,
+      minHeight: 1200,
+      quality: 80,
+      format: CompressFormat.webp,
+    );
+    if (result == null) throw Exception('Gagal mengompres gambar');
+    return Uint8List.fromList(result);
+  }
+
+  /// Upload image to Supabase Storage (auto-converts to WebP, max 5MB)
   static Future<String> uploadImage(File file, String fileName) async {
-    final bytes = await file.readAsBytes();
-    final path = 'products/$fileName';
+    // Check original file size
+    final originalSize = await file.length();
+    if (originalSize > maxFileSizeBytes) {
+      throw Exception('Ukuran file terlalu besar (${(originalSize / 1024 / 1024).toStringAsFixed(1)} MB). Maksimal 5 MB.');
+    }
+
+    // Compress & convert to WebP
+    final webpBytes = await _compressToWebP(file);
+
+    // Double-check compressed size
+    if (webpBytes.length > maxFileSizeBytes) {
+      throw Exception('Gambar masih terlalu besar setelah dikompress (${(webpBytes.length / 1024 / 1024).toStringAsFixed(1)} MB). Coba gambar yang lebih kecil.');
+    }
+
+    // Always save as .webp
+    final baseName = fileName.contains('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+    final path = 'products/$baseName.webp';
+
     await _client.storage.from('product-images').uploadBinary(
       path,
-      bytes,
-      fileOptions: const FileOptions(upsert: true),
+      webpBytes,
+      fileOptions: const FileOptions(upsert: true, contentType: 'image/webp'),
     );
     return _client.storage.from('product-images').getPublicUrl(path);
   }

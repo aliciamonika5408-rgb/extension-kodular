@@ -14,6 +14,7 @@ import '../widgets/revenue_chart.dart';
 import '../widgets/recent_orders.dart';
 import '../widgets/category_donut.dart';
 import '../../products/screens/product_form_screen.dart';
+import '../../security/services/security_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,6 +32,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic> _revenueStats = {};
   Map<String, dynamic>? _profile;
   String _role = 'admin';
+  Map<String, dynamic> _dbSummary = {};
+  Map<String, dynamic> _storageInfo = {};
 
   @override
   void initState() {
@@ -47,6 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         TransactionService.getTransactions(limit: 10),
         TransactionService.getRevenueStats(),
         AuthService.getProfile(),
+        SecurityService.getDatabaseSummary(),
+        SecurityService.getStorageInfo(),
       ]);
       if (mounted) {
         setState(() {
@@ -56,6 +61,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _revenueStats = results[3] as Map<String, dynamic>;
           _profile = results[4] as Map<String, dynamic>?;
           _role = (_profile?['role'] as String?) ?? 'admin';
+          _dbSummary = results[5] as Map<String, dynamic>;
+          _storageInfo = results[6] as Map<String, dynamic>;
           _loading = false;
         });
       }
@@ -108,6 +115,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         CategoryDonut(products: _products),
                         const SizedBox(height: 16),
 
+                        // Database & Storage
+                        _buildDatabaseStorage(),
+                        const SizedBox(height: 16),
+
                         // Quote
                         _buildQuote(),
                       ],
@@ -149,13 +160,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildHeader(String greeting, String displayName) {
     return GlassCard(
       padding: const EdgeInsets.all(24),
-      gradientColors: [const Color(0x0FD4A574), const Color(0x088B5CF6)],
+      accentBar: true,
+      glowColor: LuvColors.accent,
+      gradientColors: [const Color(0x1AD4A574), const Color(0x0A0B0D14)],
+      margin: EdgeInsets.zero,
       child: Stack(
         children: [
           Positioned(top: -30, right: -10,
-            child: Container(width: 120, height: 120, decoration: BoxDecoration(
+            child: Container(width: 130, height: 130, decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [LuvColors.accent.withValues(alpha: 0.06), Colors.transparent]),
+              gradient: RadialGradient(colors: [LuvColors.accent.withValues(alpha: 0.08), Colors.transparent]),
+            )),
+          ),
+          Positioned(bottom: -40, left: -20,
+            child: Container(width: 100, height: 100, decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [LuvColors.purple.withValues(alpha: 0.05), Colors.transparent]),
             )),
           ),
           Column(
@@ -171,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 10),
               RichText(
                 text: TextSpan(children: [
-                  TextSpan(text: '$displayName, ', style: GoogleFonts.playfairDisplay(fontSize: 26, fontWeight: FontWeight.w400, fontStyle: FontStyle.italic, color: LuvColors.textPrimary)),
+                  TextSpan(text: '$displayName, ', style: GoogleFonts.playfairDisplay(fontSize: 26, fontWeight: FontWeight.w400, fontStyle: FontStyle.italic, color: LuvColors.textSecondary)),
                   TextSpan(text: 'Welcome Back', style: GoogleFonts.playfairDisplay(fontSize: 26, fontWeight: FontWeight.w700, color: LuvColors.textPrimary)),
                 ]),
               ),
@@ -240,6 +260,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildRevenue() {
     return GlassCard(
       padding: const EdgeInsets.all(20),
+      accentBar: true,
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -252,13 +274,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ]),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: LuvColors.accentBg, borderRadius: BorderRadius.circular(10)),
-                child: Text(Formatters.currency(_revenueStats['total'] ?? 0), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: LuvColors.accent)),
+                decoration: BoxDecoration(
+                  color: LuvColors.accentBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: LuvColors.accent.withValues(alpha: 0.15)),
+                ),
+                child: ShaderMask(
+                  shaderCallback: (b) => const LinearGradient(
+                    colors: [LuvColors.accentLight, LuvColors.accent],
+                  ).createShader(b),
+                  child: Text(
+                    Formatters.currency(_revenueStats['total'] ?? 0),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          // Revenue stats in equal columns with dividers
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
             decoration: BoxDecoration(
@@ -479,20 +512,193 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildDatabaseStorage() {
+    final fileCount = _storageInfo['fileCount'] ?? 0;
+    final totalBytes = _storageInfo['totalSize'] ?? 0;
+    final totalKB = totalBytes / 1024;
+    final mediaSizeStr = totalKB >= 1024
+        ? '${(totalKB / 1024).toStringAsFixed(2)} MB'
+        : '${totalKB.toStringAsFixed(2)} KB';
+
+    // Estimate DB size (rough: ~1KB per row)
+    final totalRows = (_dbSummary['products'] ?? 0) + (_dbSummary['users'] ?? 0) +
+        (_dbSummary['transactions'] ?? 0) + (_dbSummary['promos'] ?? 0) +
+        (_dbSummary['security_logs'] ?? 0);
+    final dbSizeMB = (totalRows * 1.0) / 1024; // rough estimate
+    final dbLimitMB = 500.0; // Supabase free tier
+    final dbPercent = (dbSizeMB / dbLimitMB * 100).clamp(0.0, 100.0);
+
+    final storageMB = totalBytes / (1024 * 1024);
+    final storageLimitMB = 1024.0; // 1 GB
+    final storagePercent = (storageMB / storageLimitMB * 100).clamp(0.0, 100.0);
+
+    final dbItems = [
+      {'emoji': '🧴', 'label': 'KATALOG', 'value': '${_dbSummary['products'] ?? _products.length}'},
+      {'emoji': '👤', 'label': 'USERS', 'value': '${_dbSummary['users'] ?? _users.length}'},
+      {'emoji': '🎁', 'label': 'MEDIA', 'value': mediaSizeStr},
+    ];
+
+    return Column(children: [
+      // Database Summary
+      GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: LuvColors.accentBg, borderRadius: BorderRadius.circular(8)),
+                child: const Text('🗄️', style: TextStyle(fontSize: 14)),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(child: Text('Ringkasan Database', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LuvColors.textPrimary))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: LuvColors.successBg, borderRadius: BorderRadius.circular(6)),
+                child: const Text('ONLINE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: LuvColors.success, letterSpacing: 0.5)),
+              ),
+            ]),
+            const SizedBox(height: 14),
+            // Grid: KATALOG, USERS, MEDIA
+            Row(
+              children: dbItems.map((item) => Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+                  ),
+                  child: Column(children: [
+                    Text(item['emoji']!, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 6),
+                    Text(item['value']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: LuvColors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text(item['label']!, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: LuvColors.textMuted, letterSpacing: 0.5)),
+                  ]),
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 14),
+            // DB size progress bar
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+              ),
+              child: Column(children: [
+                Row(children: [
+                  Text('DB: ${dbSizeMB.toStringAsFixed(2)} MB / ${dbLimitMB.toInt()} MB', style: TextStyle(fontSize: 10, color: LuvColors.textMuted)),
+                  const Spacer(),
+                  Text('${dbPercent.toStringAsFixed(2)}%', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: dbPercent > 80 ? LuvColors.error : LuvColors.success)),
+                ]),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: dbPercent / 100,
+                    minHeight: 5,
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    valueColor: AlwaysStoppedAnimation(dbPercent > 80 ? LuvColors.error : const Color(0xFF60A5FA)),
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+
+      // Cloud Storage
+      GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: const Color(0xFF60A5FA).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Text('☁️', style: TextStyle(fontSize: 14)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Cloud Storage', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LuvColors.textPrimary)),
+                Text('Bucket gratis (1 GB)', style: TextStyle(fontSize: 9, color: LuvColors.textMuted)),
+              ])),
+            ]),
+            const SizedBox(height: 14),
+            Row(children: [
+              Text('${storageMB.toStringAsFixed(2)} MB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: LuvColors.textPrimary)),
+              const SizedBox(width: 4),
+              Text('Terpakai', style: TextStyle(fontSize: 10, color: LuvColors.textMuted)),
+              const Spacer(),
+              Text('${storagePercent.toStringAsFixed(1)}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: storagePercent > 80 ? LuvColors.error : LuvColors.success)),
+            ]),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: storagePercent / 100,
+                minHeight: 6,
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                valueColor: AlwaysStoppedAnimation(storagePercent > 80 ? LuvColors.error : const Color(0xFF60A5FA)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF60A5FA))),
+              const SizedBox(width: 4),
+              Text('$fileCount Files', style: TextStyle(fontSize: 9, color: LuvColors.textMuted)),
+              const SizedBox(width: 12),
+              Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF818CF8))),
+              const SizedBox(width: 4),
+              Text('WebP', style: TextStyle(fontSize: 9, color: LuvColors.textMuted)),
+            ]),
+          ],
+        ),
+      ),
+    ]);
+  }
+
   Widget _buildQuote() {
     return GlassCard(
       padding: const EdgeInsets.all(28),
+      margin: EdgeInsets.zero,
       child: Column(
         children: [
+          // Gold ornament
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(width: 40, height: 0.5, color: LuvColors.accent.withValues(alpha: 0.3)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Text('✦', style: TextStyle(fontSize: 14, color: LuvColors.accent)),
+            ),
+            Container(width: 40, height: 0.5, color: LuvColors.accent.withValues(alpha: 0.3)),
+          ]),
+          const SizedBox(height: 16),
           const Text('🌹', style: TextStyle(fontSize: 36)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             '"Parfum adalah seni tak kasat mata yang membekas di hati setiap orang."',
             textAlign: TextAlign.center,
-            style: GoogleFonts.playfairDisplay(fontSize: 13, fontStyle: FontStyle.italic, color: LuvColors.textSecondary, height: 1.7),
+            style: GoogleFonts.playfairDisplay(fontSize: 13, fontStyle: FontStyle.italic, color: LuvColors.textSecondary, height: 1.8),
           ),
-          const SizedBox(height: 10),
-          Text('— LUVENCE ID', style: TextStyle(fontSize: 10, color: LuvColors.accent.withValues(alpha: 0.5), fontWeight: FontWeight.w600, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          Text('— LUVENCE ID', style: TextStyle(fontSize: 10, color: LuvColors.accent.withValues(alpha: 0.6), fontWeight: FontWeight.w700, letterSpacing: 2)),
+          const SizedBox(height: 16),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(width: 60, height: 0.5, color: LuvColors.accent.withValues(alpha: 0.15)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Text('✦', style: TextStyle(fontSize: 10, color: LuvColors.accentDark)),
+            ),
+            Container(width: 60, height: 0.5, color: LuvColors.accent.withValues(alpha: 0.15)),
+          ]),
         ],
       ),
     );

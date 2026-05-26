@@ -8,6 +8,7 @@ import '../features/transactions/screens/transactions_screen.dart';
 import '../features/products/screens/products_screen.dart';
 import '../features/users/screens/users_screen.dart';
 import '../features/promos/screens/promos_screen.dart';
+import '../features/security/screens/security_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/notifications/services/notification_service.dart';
 
@@ -34,6 +35,7 @@ class _AppNavigationState extends State<AppNavigation> {
     ProductsScreen(),
     UsersScreen(),
     PromosScreen(),
+    SecurityScreen(),
     SettingsScreen(),
   ];
 
@@ -43,6 +45,7 @@ class _AppNavigationState extends State<AppNavigation> {
     _NavItem(icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2_rounded, label: 'Produk'),
     _NavItem(icon: Icons.people_outline_rounded, activeIcon: Icons.people_rounded, label: 'User'),
     _NavItem(icon: Icons.discount_outlined, activeIcon: Icons.discount_rounded, label: 'Promo'),
+    _NavItem(icon: Icons.shield_outlined, activeIcon: Icons.shield_rounded, label: 'Security'),
     _NavItem(icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, label: 'Pengaturan'),
   ];
 
@@ -234,81 +237,147 @@ class _AppNavigationState extends State<AppNavigation> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF080A10),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.03))),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, -5))],
+        gradient: LuvColors.navGradient,
+        border: Border(
+          top: BorderSide(color: LuvColors.accent.withValues(alpha: 0.06), width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: SizedBox(
+          height: 64,
           child: Row(
             children: List.generate(_navItems.length, (i) {
               final item = _navItems[i];
               final selected = _currentIndex == i;
               final showBadge = i == 1 && _newTxCount > 0;
+
               return Expanded(
                 child: GestureDetector(
                   onTap: () {
                     HapticFeedback.selectionClick();
                     setState(() {
                       _currentIndex = i;
-                      if (i == 1) _newTxCount = 0; // Clear badge on tap
+                      if (i == 1) _newTxCount = 0;
                     });
                   },
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+                    duration: const Duration(milliseconds: 280),
                     curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Stack(
+                          alignment: Alignment.center,
                           clipBehavior: Clip.none,
                           children: [
+                            // Sliding pill background
                             AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 10, vertical: 6),
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeOutCubic,
+                              width: selected ? 44 : 32,
+                              height: selected ? 36 : 28,
                               decoration: BoxDecoration(
-                                color: selected ? LuvColors.accent.withValues(alpha: 0.1) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                selected ? item.activeIcon : item.icon,
-                                size: 20,
-                                color: selected ? LuvColors.accent : LuvColors.textMuted,
+                                gradient: selected
+                                    ? LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          LuvColors.accent.withValues(alpha: 0.22),
+                                          LuvColors.accent.withValues(alpha: 0.08),
+                                        ],
+                                      )
+                                    : null,
+                                boxShadow: selected
+                                    ? LuvColors.navGlowShadow(LuvColors.accent)
+                                    : null,
                               ),
                             ),
-                            // Red notification badge
+                            // Icon
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                selected ? item.activeIcon : item.icon,
+                                key: ValueKey(selected),
+                                size: selected ? 22 : 19,
+                                color: selected
+                                    ? LuvColors.accent
+                                    : LuvColors.textMuted,
+                              ),
+                            ),
+                            // Badge
                             if (showBadge)
                               Positioned(
-                                right: 2, top: 0,
+                                right: -4, top: -4,
                                 child: Container(
-                                  width: 16, height: 16,
+                                  width: 15, height: 15,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: LuvColors.error,
-                                    border: Border.all(color: const Color(0xFF080A10), width: 2),
-                                    boxShadow: [BoxShadow(color: LuvColors.error.withValues(alpha: 0.5), blurRadius: 6)],
+                                    border: Border.all(
+                                      color: const Color(0xFF060810),
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: LuvColors.error.withValues(alpha: 0.6),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
                                   ),
                                   child: Center(
-                                    child: Text('$_newTxCount', style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Colors.white)),
+                                    child: Text(
+                                      '$_newTxCount',
+                                      style: const TextStyle(
+                                        fontSize: 7,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                           ],
                         ),
-                        const SizedBox(height: 3),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected ? LuvColors.accent : LuvColors.textMuted,
-                            letterSpacing: selected ? 0.3 : 0,
+                        // Label: only visible when selected
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox(height: 0),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              item.label,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: LuvColors.accent,
+                                letterSpacing: 0.2,
+                                shadows: [
+                                  Shadow(
+                                    color: LuvColors.accent.withValues(alpha: 0.4),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          child: Text(item.label),
+                          crossFadeState: selected
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 220),
+                          sizeCurve: Curves.easeOutCubic,
                         ),
                       ],
                     ),
