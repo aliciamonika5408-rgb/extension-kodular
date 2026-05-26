@@ -267,16 +267,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> with TickerProv
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: const Alignment(-1, -1),
-              end: const Alignment(1, 1),
-              colors: [
-                statusAccent.withValues(alpha: 0.04),
-                const Color(0xFF080A14),
-              ],
+            gradient: const LinearGradient(
+              begin: Alignment(-0.8, -1),
+              end: Alignment(0.8, 1),
+              colors: [Color(0x9912152C), Color(0x4D0C0E1C)],
             ),
             border: Border.all(
-              color: statusAccent.withValues(alpha: 0.12),
+              color: Color(0x0FFFFFFF),
               width: 1,
             ),
             boxShadow: [
