@@ -5,57 +5,50 @@ import '../../../config/supabase_config.dart';
 class SecurityService {
   static SupabaseClient get _client => SupabaseConfig.client;
 
-  // ── Accurate count helper using COUNT(*) (no 1000-row cap) ──────────────
+  // ── Accurate count helper — uses CountOption.exact (no 1000-row cap) ───
+  // NOTE: .count(CountOption.exact) sets the Prefer: count=exact header,
+  //       so response.count is the true total regardless of data limit.
   static Future<int> _exactCount(
     String table, {
     Map<String, dynamic>? eqFilters,
     Map<String, dynamic>? gteFilters,
     Map<String, dynamic>? gtFilters,
-    List<String>? inFilter,
+    List<String>? inValues,
     String? inField,
   }) async {
     try {
-      var q = _client
-          .from(table)
-          .select('id', const FetchOptions(count: CountOption.exact, head: true));
+      var q = _client.from(table).select('id');
 
-      // Apply eq filters
       if (eqFilters != null) {
-        eqFilters.forEach((col, val) {
-          q = q.eq(col, val);
-        });
+        for (final e in eqFilters.entries) {
+          q = q.eq(e.key, e.value);
+        }
       }
-      // Apply gte filters
       if (gteFilters != null) {
-        gteFilters.forEach((col, val) {
-          q = q.gte(col, val);
-        });
+        for (final e in gteFilters.entries) {
+          q = q.gte(e.key, e.value);
+        }
       }
-      // Apply gt filters
       if (gtFilters != null) {
-        gtFilters.forEach((col, val) {
-          q = q.gt(col, val);
-        });
+        for (final e in gtFilters.entries) {
+          q = q.gt(e.key, e.value);
+        }
       }
-      // Apply in filter
-      if (inField != null && inFilter != null) {
-        q = q.inFilter(inField, inFilter);
+      if (inField != null && inValues != null) {
+        q = q.inFilter(inField, inValues);
       }
 
-      final r = await q;
-      // PostgrestList.count is set when CountOption.exact is requested
-      try {
-        final cnt = (r as dynamic).count;
-        if (cnt is int) return cnt;
-      } catch (_) {}
-      return (r as List).length;
+      // .count() appends Prefer: count=exact header
+      // response.count = true total; response.data = limited rows (we ignore)
+      final response = await q.count(CountOption.exact);
+      return response.count ?? (response.data as List).length;
     } catch (e) {
-      debugPrint('SecurityService _exactCount error: $e');
+      debugPrint('SecurityService _exactCount[$table] error: $e');
       return 0;
     }
   }
 
-  /// Get security stats — uses COUNT(*) for accuracy (no row limit issues)
+  /// Get security stats with accurate counts (no 1000-row limit issue)
   static Future<Map<String, int>> getStats() async {
     final now = DateTime.now();
     final todayStart =
@@ -66,18 +59,12 @@ class SecurityService {
 
     try {
       final results = await Future.wait([
-        // Total all-time events
         _exactCount('security_logs'),
-        // Events today (midnight local time)
         _exactCount('security_logs', gteFilters: {'timestamp': todayStart}),
-        // Critical only
         _exactCount('security_logs', eqFilters: {'severity': 'CRITICAL'}),
-        // Active blocks (not yet expired)
         _exactCount('ip_blocklist', gtFilters: {'expires_at': nowStr}),
-        // High + Critical severity
         _exactCount('security_logs',
-            inField: 'severity', inFilter: ['HIGH', 'CRITICAL']),
-        // Last 24h events
+            inField: 'severity', inValues: ['HIGH', 'CRITICAL']),
         _exactCount('security_logs', gteFilters: {'timestamp': last24h}),
       ]);
 
@@ -98,7 +85,7 @@ class SecurityService {
     }
   }
 
-  /// Get recent security logs — properly chains filters
+  /// Get recent security logs with proper filter chaining
   static Future<List<Map<String, dynamic>>> getLogs({
     int limit = 50,
     String? severity,
@@ -108,7 +95,6 @@ class SecurityService {
     try {
       var q = _client.from('security_logs').select();
 
-      // Chain filters correctly (don't recreate query)
       if (severity != null && severity.isNotEmpty) {
         if (severity == 'HIGH') {
           q = q.inFilter('severity', ['HIGH', 'CRITICAL']);
@@ -161,9 +147,10 @@ class SecurityService {
     });
   }
 
-  /// Block an IP manually for a given duration
+  /// Block an IP manually
   static Future<void> blockIp(String ip,
-      {String reason = 'Manual block', Duration duration = const Duration(hours: 24)}) async {
+      {String reason = 'Manual block',
+      Duration duration = const Duration(hours: 24)}) async {
     final expiresAt = DateTime.now().add(duration).toIso8601String();
     await _client.from('ip_blocklist').upsert({
       'ip': ip,
@@ -182,7 +169,7 @@ class SecurityService {
     });
   }
 
-  /// Get database summary stats (row counts for key tables)
+  /// Get database summary stats
   static Future<Map<String, dynamic>> getDatabaseSummary() async {
     try {
       final results = await Future.wait([
@@ -200,7 +187,10 @@ class SecurityService {
         'security_logs': results[4],
       };
     } catch (_) {
-      return {'products': 0, 'users': 0, 'transactions': 0, 'promos': 0, 'security_logs': 0};
+      return {
+        'products': 0, 'users': 0, 'transactions': 0,
+        'promos': 0, 'security_logs': 0,
+      };
     }
   }
 
