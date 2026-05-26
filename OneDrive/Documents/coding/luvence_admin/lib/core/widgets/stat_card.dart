@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
 
 /// Premium stat card with color-matched gradient, border glow, and entrance animation.
 class StatCard extends StatefulWidget {
